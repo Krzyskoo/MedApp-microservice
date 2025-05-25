@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/appointmentservice/appointmentservice.iml" filepath="$PROJECT_DIR$/appointmentservice/appointmentservice.iml" />
+      <module fileurl="file://$PROJECT_DIR$/chatservice/chatservice.iml" filepath="$PROJECT_DIR$/chatservice/chatservice.iml" />
+      <module fileurl="file://$PROJECT_DIR$/configserver/configserver.iml" filepath="$PROJECT_DIR$/configserver/configserver.iml" />
+      <module fileurl="file://$PROJECT_DIR$/eurekaserver/eurekaserver.iml" filepath="$PROJECT_DIR$/eurekaserver/eurekaserver.iml" />
+      <module fileurl="file://$PROJECT_DIR$/gatewayervice/gatewayervice.iml" filepath="$PROJECT_DIR$/gatewayervice/gatewayervice.iml" />
+      <module fileurl="file://$PROJECT_DIR$/paymentservice/paymentservice.iml" filepath="$PROJECT_DIR$/paymentservice/paymentservice.iml" />
+      <module fileurl="file://$PROJECT_DIR$/prescriptionservice/prescriptionservice.iml" filepath="$PROJECT_DIR$/prescriptionservice/prescriptionservice.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/project-mikroservice.iml" filepath="$PROJECT_DIR$/.idea/project-mikroservice.iml" />
+      <module fileurl="file://$PROJECT_DIR$/sicknoteservice/sicknoteservice.iml" filepath="$PROJECT_DIR$/sicknoteservice/sicknoteservice.iml" />
+      <module fileurl="file://$PROJECT_DIR$/userservice/userservice.iml" filepath="$PROJECT_DIR$/userservice/userservice.iml" />
+    </modules>
+  </component>
+</project>
