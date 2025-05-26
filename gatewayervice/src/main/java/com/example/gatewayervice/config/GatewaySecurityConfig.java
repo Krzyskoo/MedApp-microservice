@@ -34,7 +34,9 @@ public class GatewaySecurityConfig {
                         // publiczne endpointy rejestracji/loginu
                         .pathMatchers("/med/auth/api/v1/auth/register",
                                 "/med/auth/api/v1/auth/login",
-                                "/med/auth/api/v1/auth/refresh-token")
+                                "/med/auth/api/v1/auth/refresh-token",
+                                "/payment/payment/webhook",
+                                "/payment/**")
                         .permitAll()
                         // WSZYSTKIE pozostałe żądania wymagają poprawnego JWT
                         .anyExchange().authenticated()
