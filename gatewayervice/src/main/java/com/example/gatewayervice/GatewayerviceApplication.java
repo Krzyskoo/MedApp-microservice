@@ -25,7 +25,12 @@ public class GatewayerviceApplication {
 						.path("/payment/**")
 						.filters(f->f.rewritePath("/payment/(?<segment>.*)","/${segment}"))
 						.uri("lb://PAYMENTSERVICE"))
-						.build();
+
+				.route(p->p
+						.path("/api/v1/appointment/**")
+						.filters(f->f.rewritePath("/api/v1/appointment/(?<segment>.*)","/${segment}"))
+						.uri("lb://APPOINTMENTSERVICE"))
+				.build();
 
 	}
 

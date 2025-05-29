@@ -1,29 +1,36 @@
 package com.example.userservice.controller;
 
 import com.example.userservice.constants.ApplicationConstants;
-import com.example.userservice.dto.LoginRequestDTO;
-import com.example.userservice.dto.LoginResponseDTO;
-import com.example.userservice.dto.UserRegistrationRequestDTO;
-import com.example.userservice.dto.UserRegistrationResponseDTO;
+import com.example.userservice.dto.*;
+import com.example.userservice.service.impl.DoctorProfileServiceImpl;
 import com.example.userservice.service.impl.UserServiceImpl;
+import io.jsonwebtoken.Jwt;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import org.apache.kafka.common.protocol.types.Field;
+import org.springframework.boot.autoconfigure.security.oauth2.resource.OAuth2ResourceServerProperties;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/auth")
 public class UserController {
     private final UserServiceImpl userService;
+    private final DoctorProfileServiceImpl doctorProfileService;
 
-    public UserController(UserServiceImpl userService) {
+    public UserController(UserServiceImpl userService, DoctorProfileServiceImpl doctorProfileService) {
         this.userService = userService;
+        this.doctorProfileService = doctorProfileService;
     }
+
     @Operation(summary = "Register a new user",
                 description ="REST API to register a new user" )
     @ApiResponses({
@@ -69,5 +76,14 @@ public class UserController {
     @GetMapping("/hello")
     public String hello() {
         return "hello";
+    }
+
+    @GetMapping("/user")
+    public ResponseEntity<UserDTO> getCurrentUser() {
+        return ResponseEntity.ok().body(userService.getAuthenticatedUser());
+    }
+    @GetMapping("/doctors")
+    public ResponseEntity<List<UserDoctorDTO>> getAllDoctors() {
+        return ResponseEntity.ok().body(doctorProfileService.getAllDoctors());
     }
 }

@@ -1,6 +1,7 @@
 package com.example.userservice.service.impl;
 
 import com.example.userservice.constants.ApplicationConstants;
+import com.example.userservice.dto.UserDTO;
 import com.example.userservice.dto.UserRegistrationRequestDTO;
 import com.example.userservice.dto.UserRegistrationResponseDTO;
 import com.example.userservice.exception.UserAlreadyExistException;
@@ -16,6 +17,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -65,5 +67,15 @@ public class UserServiceImpl implements IUserService {
 
         }
         return jwt;
+    }
+
+    @Override
+    public UserDTO getAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication==null){
+            throw new RuntimeException("User is not authenticated");
+        }
+        User user = userRepo.findByEmail(authentication.getName()).orElseThrow(() -> new RuntimeException("User not found"));
+        return UserMapper.mapToUserDTO(user);
     }
 }

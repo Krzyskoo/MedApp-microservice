@@ -20,8 +20,6 @@ import java.util.Date;
 import java.util.stream.Collectors;
 
 public class JwtTokenGenerationFilter extends OncePerRequestFilter {
-
-    private String secretKey;
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
