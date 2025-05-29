@@ -1,9 +1,12 @@
 package com.example.appointmentservice.repo;
 
-import com.example.appointmentservice.model.Doctor;
+import com.example.appointmentservice.model.AppointmentSlot;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
-public interface DoctorRepo extends JpaRepository<Doctor, Long> {
+public interface AppointmentSlotRepo extends JpaRepository<AppointmentSlot, Long> {
+
 }

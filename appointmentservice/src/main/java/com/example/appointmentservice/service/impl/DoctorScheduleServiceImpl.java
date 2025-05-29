@@ -1,31 +1,29 @@
 package com.example.appointmentservice.service.impl;
 
+import com.example.appointmentservice.dto.UserDoctorDto;
 import com.example.appointmentservice.model.DoctorSchedule;
-import com.example.appointmentservice.repo.DoctorRepo;
 import com.example.appointmentservice.repo.DoctorScheduleRepo;
 import com.example.appointmentservice.service.IDoctorScheduleService;
+import com.example.appointmentservice.service.client.UserFeignClient;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.YearMonth;
-import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @Service
 public class DoctorScheduleServiceImpl implements IDoctorScheduleService {
 
-    private final DoctorRepo doctorRepo;
     private final DoctorScheduleRepo doctorScheduleRepo;
+    private final UserFeignClient userFeignClient;
 
-    public DoctorScheduleServiceImpl(DoctorRepo doctorRepo, DoctorScheduleRepo doctorScheduleRepo) {
-        this.doctorRepo = doctorRepo;
+    public DoctorScheduleServiceImpl(DoctorScheduleRepo doctorScheduleRepo, UserFeignClient userFeignClient) {
         this.doctorScheduleRepo = doctorScheduleRepo;
+        this.userFeignClient = userFeignClient;
     }
 
     @Override
@@ -34,28 +32,27 @@ public class DoctorScheduleServiceImpl implements IDoctorScheduleService {
     }
 
     @Override
-    public void createMonthlySchedule(Long doctorId) {
+    public void createMonthlySchedule() {
+
+        List<UserDoctorDto> doctors = userFeignClient.getAllDoctors();
         YearMonth currentMonth = YearMonth.now();
         List<LocalDate> allDates =IntStream.rangeClosed(1,currentMonth.lengthOfMonth())
                 .mapToObj(currentMonth::atDay)
                 .collect(Collectors.toList());
         List<DoctorSchedule> schedules = new ArrayList<>();
-        ZoneId zone = ZoneId.systemDefault();
-        Random random = new Random();
-        for (LocalDate date : allDates) {
-            LocalTime start = random.nextBoolean() ? LocalTime.of(8, 0) : LocalTime.of(16, 0);
-            LocalTime end = start.plusHours(8);
 
-            DoctorSchedule doctorSchedule = new DoctorSchedule();
-            doctorSchedule.setDoctor(doctorRepo.findById(doctorId).get());
-            doctorSchedule.setWeekday(date.getDayOfWeek().name());
-            doctorSchedule.setWorkDate(Date.from(date.atStartOfDay(zone).toInstant()));
-            doctorSchedule.setWorkStart(start);
-            doctorSchedule.setWorkEnd(end);
-            schedules.add(doctorSchedule);
-        }
+        doctors.forEach(doctor -> {
+            allDates.forEach(date -> {
+                DoctorSchedule schedule = new DoctorSchedule();
+                schedule.setDoctorId(doctor.getDoctorId());
+                schedule.setWorkStart(LocalTime.of(8, 0));
+                schedule.setWorkEnd(LocalTime.of(16, 0));
+                schedule.setWorkDate(date);
+                schedule.setWeekday(date.getDayOfWeek());
+                schedules.add(schedule);
+            });
+        });
         doctorScheduleRepo.saveAll(schedules);
-
     }
 
     @Override
@@ -68,5 +65,8 @@ public class DoctorScheduleServiceImpl implements IDoctorScheduleService {
 
     }
 
-
+    @Override
+    public List<DoctorSchedule> getWeeklyScheduleForAllDoctors() {
+        return doctorScheduleRepo.findByWorkDateBetween(LocalDate.now(), LocalDate.now().plusDays(7));
+    }
 }

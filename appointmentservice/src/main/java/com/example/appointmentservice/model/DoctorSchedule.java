@@ -6,8 +6,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.Date;
 @Entity
 @Getter
 @Setter
@@ -18,12 +19,17 @@ public class DoctorSchedule {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name="doctor_id", nullable=false)
-    private Doctor doctor;
+    @Column(name = "doctor_id", nullable = false)
+    private Long doctorId;
 
-    private String weekday;
-    private Date workDate;
+    @Column(name = "work_date", nullable = false)
+    private LocalDate workDate;
+    @Enumerated(EnumType.STRING)
+    private DayOfWeek weekday;
+
+    @Column(name = "work_start", nullable = false)
     private LocalTime workStart;
+
+    @Column(name = "work_end", nullable = false)
     private LocalTime workEnd;
 }
