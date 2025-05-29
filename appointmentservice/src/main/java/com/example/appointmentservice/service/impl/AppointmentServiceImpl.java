@@ -18,21 +18,28 @@ public class AppointmentServiceImpl implements IAppointmentService {
     private final UserFeignClient userFeignClient;
     private final PaymentFeignClient paymentFeignClient;
     private final DoctorScheduleServiceImpl doctorScheduleService;
+    private final AppointmentSlotServiceImpl appointmentSlotService;
 
     public AppointmentServiceImpl(AppointmentRepo appointmentRepo,
                                   UserFeignClient userFeignClient,
                                   PaymentFeignClient paymentFeignClient,
-                                  DoctorScheduleServiceImpl doctorScheduleService) {
+                                  DoctorScheduleServiceImpl doctorScheduleService,
+                                  AppointmentSlotServiceImpl appointmentSlotService) {
         this.appointmentRepo = appointmentRepo;
         this.userFeignClient = userFeignClient;
         this.paymentFeignClient = paymentFeignClient;
         this.doctorScheduleService = doctorScheduleService;
-
+        this.appointmentSlotService = appointmentSlotService;
     }
 
     @Override
     public String createAppointment(AppointmentRequestDto appointmentRequestDto) {
         UserRequestDto userRequestDto = userFeignClient.getCurrentUserIdAndEmail();
+        if(!appointmentSlotService.checkAvailability(appointmentRequestDto.getDoctorId(),
+                appointmentRequestDto.getStartAppointment())){
+            throw new RuntimeException("Appointment is not available");
+        }
+
 
         Appointment appointment = Appointment.builder()
                 .doctorId(appointmentRequestDto.getDoctorId())
@@ -42,6 +49,7 @@ public class AppointmentServiceImpl implements IAppointmentService {
                 .patientId(userRequestDto.getUserId())
                 .status(AppointmentStatus.CREATED)
                 .build();
+        appointmentSlotService.reserveSlot(appointmentRequestDto.getDoctorId(), appointmentRequestDto.getStartAppointment());
 
         appointmentRepo.save(appointment);
         return paymentFeignClient.createCheckoutSession(new PaymentRequestDto(
