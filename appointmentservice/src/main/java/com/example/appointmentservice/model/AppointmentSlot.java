@@ -1,6 +1,7 @@
 package com.example.appointmentservice.model;
 
 import com.example.appointmentservice.constants.AppointmentSlotStatus;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -19,5 +20,6 @@ public class AppointmentSlot {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     @Enumerated(EnumType.STRING)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     private AppointmentSlotStatus status;
 }

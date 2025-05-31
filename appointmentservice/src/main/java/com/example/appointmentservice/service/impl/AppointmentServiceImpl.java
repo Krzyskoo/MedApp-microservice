@@ -1,11 +1,10 @@
 package com.example.appointmentservice.service.impl;
 
+import com.example.appointmentservice.config.KafkaProducer;
 import com.example.appointmentservice.constants.AppointmentStatus;
-import com.example.appointmentservice.dto.AppointmentRequestDto;
-import com.example.appointmentservice.dto.PaymentFinalizationEventDTO;
-import com.example.appointmentservice.dto.PaymentRequestDto;
-import com.example.appointmentservice.dto.UserRequestDto;
+import com.example.appointmentservice.dto.*;
 import com.example.appointmentservice.model.Appointment;
+import com.example.appointmentservice.model.AppointmentSlot;
 import com.example.appointmentservice.repo.AppointmentRepo;
 import com.example.appointmentservice.service.IAppointmentService;
 import com.example.appointmentservice.service.client.PaymentFeignClient;
@@ -19,17 +18,20 @@ public class AppointmentServiceImpl implements IAppointmentService {
     private final PaymentFeignClient paymentFeignClient;
     private final DoctorScheduleServiceImpl doctorScheduleService;
     private final AppointmentSlotServiceImpl appointmentSlotService;
+    private final KafkaProducer kafkaProducer;
 
     public AppointmentServiceImpl(AppointmentRepo appointmentRepo,
                                   UserFeignClient userFeignClient,
                                   PaymentFeignClient paymentFeignClient,
                                   DoctorScheduleServiceImpl doctorScheduleService,
-                                  AppointmentSlotServiceImpl appointmentSlotService) {
+                                  AppointmentSlotServiceImpl appointmentSlotService,
+                                  KafkaProducer kafkaProducer) {
         this.appointmentRepo = appointmentRepo;
         this.userFeignClient = userFeignClient;
         this.paymentFeignClient = paymentFeignClient;
         this.doctorScheduleService = doctorScheduleService;
         this.appointmentSlotService = appointmentSlotService;
+        this.kafkaProducer = kafkaProducer;
     }
 
     @Override
@@ -49,8 +51,8 @@ public class AppointmentServiceImpl implements IAppointmentService {
                 .patientId(userRequestDto.getUserId())
                 .status(AppointmentStatus.CREATED)
                 .build();
-        appointmentSlotService.reserveSlot(appointmentRequestDto.getDoctorId(), appointmentRequestDto.getStartAppointment());
-
+        appointment.setSlot(appointmentSlotService.getSlotByStartTimeAndDoctorId(appointmentRequestDto.getStartAppointment(), appointmentRequestDto.getDoctorId()));
+        appointmentSlotService.reserveSlot(appointment.getSlot());
         appointmentRepo.save(appointment);
         return paymentFeignClient.createCheckoutSession(new PaymentRequestDto(
                 appointmentRequestDto.getAmount(),
@@ -63,7 +65,7 @@ public class AppointmentServiceImpl implements IAppointmentService {
     }
 
     @Override
-    public void markPaymentAsFinalized(PaymentFinalizationEventDTO paymentFinalizationEventDTO) {
+    public void markPaymentAsFinalized(PaymentFinalizationEventDto paymentFinalizationEventDTO) {
         Appointment appointment = appointmentRepo.findById(paymentFinalizationEventDTO.getAppointmentId()).get();
         if (appointment==null) {
             throw new RuntimeException("Appointment not found");
@@ -73,6 +75,18 @@ public class AppointmentServiceImpl implements IAppointmentService {
             case FAILED -> appointment.setStatus(AppointmentStatus.CANCELLED);
         }
         appointmentRepo.save(appointment);
+        sendKafkaMessageAfterPaymentFinalization(appointment);
+
+    }
+
+    @Override
+    public void sendKafkaMessageAfterPaymentFinalization(Appointment appointment) {
+        kafkaProducer.sendKafkaAppointmentFinalizationEvent(
+                new AppointmentFinalizationEventDto(
+                        appointment.getId(),
+                        appointment.getPatientId(),
+                        appointment.getDoctorId()
+        ));
 
     }
 }

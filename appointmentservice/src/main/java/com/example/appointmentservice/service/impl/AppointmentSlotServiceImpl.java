@@ -59,7 +59,15 @@ public class AppointmentSlotServiceImpl implements IAppointmentSlotService {
     }
 
     @Override
-    public void reserveSlot(Long doctorId, LocalDateTime startTime) {
-        appointmentSlotRepo.findByStartTimeAndDoctorId(startTime, doctorId).ifPresent(slot -> slot.setStatus(AppointmentSlotStatus.BOOKED));
+    public void reserveSlot(AppointmentSlot slot) {
+        slot.setStatus(AppointmentSlotStatus.BOOKED);
+        appointmentSlotRepo.save(slot);
+    }
+
+    @Override
+    public AppointmentSlot getSlotByStartTimeAndDoctorId(LocalDateTime startTime, Long doctorId) {
+        return appointmentSlotRepo.findByStartTimeAndDoctorId(startTime, doctorId).orElseThrow(
+                () -> new RuntimeException("Slot not found")
+        ) ;
     }
 }

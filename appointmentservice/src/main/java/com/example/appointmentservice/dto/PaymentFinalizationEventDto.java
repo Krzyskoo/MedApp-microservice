@@ -11,7 +11,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @Getter
 @Setter
-public class PaymentFinalizationEventDTO {
+public class PaymentFinalizationEventDto {
     @Enumerated(EnumType.STRING)
     private PaymentStatus paymentStatus;
     private Long appointmentId;

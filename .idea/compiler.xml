@@ -11,26 +11,16 @@
         <module name="gatewayervice" />
         <module name="configserver" />
       </profile>
-      <profile name="Annotation profile for sicknoteservice" enabled="true">
-        <sourceOutputDir name="target/generated-sources/annotations" />
-        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
-        <outputRelativeToContentRoot value="true" />
-        <processorPath useClasspath="false">
-          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/unknown/lombok-unknown.jar" />
-        </processorPath>
-        <module name="sicknoteservice" />
-        <module name="chatservice" />
-        <module name="prescriptionservice" />
-      </profile>
-      <profile name="Annotation profile for paymentservice" enabled="true">
+      <profile name="Annotation profile for userservice" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="false">
           <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.38/lombok-1.18.38.jar" />
         </processorPath>
-        <module name="paymentservice" />
         <module name="appointmentservice" />
+        <module name="chatservice" />
+        <module name="paymentservice" />
         <module name="userservice" />
       </profile>
     </annotationProcessing>

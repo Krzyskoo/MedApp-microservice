@@ -9,8 +9,6 @@
         <option value="$PROJECT_DIR$/appointmentservice/pom.xml" />
         <option value="$PROJECT_DIR$/chatservice/pom.xml" />
         <option value="$PROJECT_DIR$/paymentservice/pom.xml" />
-        <option value="$PROJECT_DIR$/prescriptionservice/pom.xml" />
-        <option value="$PROJECT_DIR$/sicknoteservice/pom.xml" />
         <option value="$PROJECT_DIR$/gatewayervice/pom.xml" />
       </list>
     </option>

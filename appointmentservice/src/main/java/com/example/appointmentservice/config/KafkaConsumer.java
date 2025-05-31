@@ -1,6 +1,6 @@
 package com.example.appointmentservice.config;
 
-import com.example.appointmentservice.dto.PaymentFinalizationEventDTO;
+import com.example.appointmentservice.dto.PaymentFinalizationEventDto;
 import com.example.appointmentservice.service.impl.AppointmentServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -23,8 +23,8 @@ public class KafkaConsumer {
     @KafkaListener(topics = "appointment-payment-finalization", groupId = "appointment-payment-id")
     public void consumePaymentFinalizationEvent(String paymentFinalizationEventJson) {
         try {
-            PaymentFinalizationEventDTO paymentFinalizationEventDTO =
-                    objectMapper.readValue(paymentFinalizationEventJson, PaymentFinalizationEventDTO.class);
+            PaymentFinalizationEventDto paymentFinalizationEventDTO =
+                    objectMapper.readValue(paymentFinalizationEventJson, PaymentFinalizationEventDto.class);
             appointmentService.markPaymentAsFinalized(paymentFinalizationEventDTO);
 
         } catch (Exception e) {

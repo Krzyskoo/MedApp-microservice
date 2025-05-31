@@ -30,6 +30,10 @@ public class GatewayerviceApplication {
 						.path("/api/v1/appointment/**")
 						.filters(f->f.rewritePath("/api/v1/appointment/(?<segment>.*)","/${segment}"))
 						.uri("lb://APPOINTMENTSERVICE"))
+				.route(p->p
+						.path("/api/chat/**")
+						.filters(f->f.rewritePath("/api/chat/(?<segment>.*)","/${segment}"))
+						.uri("lb://CHATSERVICE"))
 				.build();
 
 	}
