@@ -20,7 +20,7 @@ public class KafkaProducer {
             String paymentFinalizationEventJson = objectMapper.writeValueAsString(appointmentFinalizationEventDto);
             kafkaTemplate.send("appointment-appointment-finalization", paymentFinalizationEventJson);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Could not send user registered event", e);
+            throw new RuntimeException("Could not send user appointment finalization event", e);
         }
     }
 }

@@ -4,6 +4,9 @@ import com.example.paymentservice.config.KafkaProducer;
 import com.example.paymentservice.constants.PaymentStatus;
 import com.example.paymentservice.dto.PaymentFinalizationEventDTO;
 import com.example.paymentservice.dto.PaymentRequest;
+import com.example.paymentservice.exception.AppointmentNotFoundException;
+import com.example.paymentservice.exception.InvalidWebhookException;
+import com.example.paymentservice.exception.PaymentNotFoundException;
 import com.example.paymentservice.model.Payment;
 import com.example.paymentservice.repo.PaymentRepo;
 import com.example.paymentservice.service.IPaymentService;
@@ -64,7 +67,7 @@ public class PaymentServiceImpl implements IPaymentService {
     }
 
     @Override
-    public void createPaymentIntent(PaymentRequest paymentRequest) throws StripeException {
+    public void createPaymentIntent(PaymentRequest paymentRequest){
         Payment payment = Payment.builder()
                 .appointmentId(paymentRequest.getAppointmentId())
                 .intentId(paymentRequest.getAppointmentId().toString())
@@ -77,25 +80,25 @@ public class PaymentServiceImpl implements IPaymentService {
     }
 
     @Override
-    public String handleWebhook(Event stripeEvent) throws StripeException {
+    public String handleWebhook(Event stripeEvent){
         String eventType = stripeEvent.getType();
         return switch (eventType) {
             case "checkout.session.completed" -> handleCheckoutSessionCompleted(stripeEvent);
             case "payment_intent.succeeded" -> handlePaymentIntentSucceeded(stripeEvent);
             case "payment_intent.payment_failed" -> handlePaymentIntentPaymentFailed(stripeEvent);
-            default -> null;
+            default -> throw new InvalidWebhookException("Invalid event type: " + eventType);
         };
     }
 
     @Override
-    public String handleCheckoutSessionCompleted(Event stripeEvent) throws StripeException {
+    public String handleCheckoutSessionCompleted(Event stripeEvent){
         Session session = (Session) stripeEvent.getData().getObject();
         if (session == null) {
             return "Bad request";
         }
         Payment payment = paymentRepo.findByAppointmentId(Long.parseLong(session.getMetadata().get("appointmentId")));
         if (payment == null) {
-            return "Bad request";
+            throw new AppointmentNotFoundException("Appointment not found");
         }
         payment.setIntentId(session.getPaymentIntent());
         paymentRepo.save(payment);
@@ -104,7 +107,7 @@ public class PaymentServiceImpl implements IPaymentService {
     }
 
     @Override
-    public String handlePaymentIntentSucceeded(Event stripeEvent) throws StripeException {
+    public String handlePaymentIntentSucceeded(Event stripeEvent){
 
         Long appointmentId = Long.parseLong(((PaymentIntent) stripeEvent.getData()
                 .getObject())
@@ -116,7 +119,7 @@ public class PaymentServiceImpl implements IPaymentService {
     }
 
     @Override
-    public String handlePaymentIntentPaymentFailed(Event stripeEvent) throws StripeException {
+    public String handlePaymentIntentPaymentFailed(Event stripeEvent){
         Long appointmentId = Long.parseLong(((PaymentIntent) stripeEvent.getData()
                 .getObject())
                 .getMetadata()
@@ -127,10 +130,10 @@ public class PaymentServiceImpl implements IPaymentService {
     }
 
     @Override
-    public void updatePaymentStatus(Long appointmentId, PaymentStatus status) throws StripeException {
+    public void updatePaymentStatus(Long appointmentId, PaymentStatus status){
         Payment payment = paymentRepo.findByAppointmentId(appointmentId);
         if (payment==null){
-            throw new RuntimeException("Payment not found");
+            throw new PaymentNotFoundException("Payment not found");
         }
         payment.setStatus(status);
         paymentRepo.save(payment);

@@ -1,6 +1,7 @@
 package com.example.chatservice.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -36,6 +37,13 @@ public class ChatMessage {
     @Column(name = "content", nullable = false)
     private String content;
 
+    @JsonIgnore
     @Column(name = "sent_at", nullable = false)
     private Instant sentAt;
+    @Column(name = "file_name")
+    private String fileName;
+
+    @Lob
+    @Column(name = "file_data", columnDefinition = "TEXT")
+    private String fileData;
 }

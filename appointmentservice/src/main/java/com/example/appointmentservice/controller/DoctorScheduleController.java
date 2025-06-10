@@ -25,7 +25,7 @@ public class DoctorScheduleController {
     public ResponseEntity<String> createSchedule() {
         doctorScheduleService.createMonthlySchedule();
         appointmentSlotService.createSlotsWeakly();
-        return ResponseEntity.ok().body("OK");
+        return ResponseEntity.ok().body("Schedule created successfully");
     }
 
 }

@@ -33,6 +33,10 @@ public class ChatController {
         msg.setSenderId(incoming.getSenderId());
         msg.setContent(incoming.getContent());
         msg.setSentAt(Instant.now());
+        if (incoming.getFileData() != null) {
+            msg.setFileName(incoming.getFileName());
+            msg.setFileData(incoming.getFileData());
+        }
         return msgRepo.save(msg);
     }
 }

@@ -12,5 +12,6 @@ import lombok.Setter;
 public class UserDoctorDTO {
     private Long doctorId;
     private Long userId;
+
     private String specialization;
 }

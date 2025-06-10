@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -7,115 +8,213 @@
     <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
-        #messages { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; margin-top: 10px; }
+        #messages {
+            border: 1px solid #ccc;
+            height: 300px;
+            overflow-y: scroll;
+            padding: 10px;
+            margin-top: 10px;
+            background: #fafafa;
+        }
         #messages div { margin-bottom: 5px; }
-        input, button { margin: 5px 0; padding: 8px; font-size: 14px; }
+        input, button, select { margin: 5px 0; padding: 8px; font-size: 14px; }
         #chatSection { display: none; margin-top: 20px; }
+        .file-link {
+            margin-left: 10px;
+            text-decoration: underline;
+            color: blue;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
 <h1>Chat Application</h1>
 
+<!-- Sekcja pobierania linku do pokoju czatu -->
 <div id="linkSection">
-    <label>Appointment ID: <input type="text" id="appointmentIdInput" placeholder="Enter appointment ID"></label>
+    <label>Appointment ID: <input type="text" id="appointmentIdInput" placeholder="Wprowadź ID wizyty"></label>
     <button id="getRoomLinkBtn">Get Chat Room Link</button>
-    <div id="linkResult"></div>
+    <div id="linkResult" style="margin-top: 10px;"></div>
 </div>
 
+<!-- Sekcja czatu, widoczna dopiero po pobraniu linku -->
 <div id="chatSection">
     <div>
         <strong>Connected Room:</strong> <span id="currentRoomId"></span><br>
-        <strong>Your User ID (long):</strong> <input type="text" id="senderIdInput" placeholder="Enter your user ID">
+        <label>Your User ID (Long): <input type="text" id="senderIdInput" placeholder="Wprowadź swoje ID"></label>
         <button id="connectChatBtn">Connect to Chat</button>
     </div>
-    <div id="status">Status: Disconnected</div>
+    <div id="status" style="margin-top: 10px;">Status: Disconnected</div>
     <div id="messages"></div>
-    <input type="text" id="messageInput" placeholder="Type your message..." disabled>
+    <input type="text" id="messageInput" placeholder="Type your message..." disabled style="width: 80%;">
     <button id="sendBtn" disabled>Send</button>
 </div>
 
 <script>
-    let stompClient = null;
-    let roomId = null;
-    let wsUrl = null;
+    (function() {
+        let stompClient = null;
+        let roomId       = null;
+        let wsUrl        = null;
 
-    document.getElementById('getRoomLinkBtn').addEventListener('click', function() {
-        const appointmentId = document.getElementById('appointmentIdInput').value.trim();
-        if (!appointmentId) {
-            alert('Please enter the appointment ID');
-            return;
+        // Referencje do elementów DOM
+        const appointmentIdInput = document.getElementById('appointmentIdInput');
+        const getRoomLinkBtn     = document.getElementById('getRoomLinkBtn');
+        const linkResult         = document.getElementById('linkResult');
+        const chatSection        = document.getElementById('chatSection');
+        const currentRoomIdSpan  = document.getElementById('currentRoomId');
+        const senderIdInput      = document.getElementById('senderIdInput');
+        const connectChatBtn     = document.getElementById('connectChatBtn');
+        const statusDiv          = document.getElementById('status');
+        const messagesDiv        = document.getElementById('messages');
+        const messageInput       = document.getElementById('messageInput');
+        const sendBtn            = document.getElementById('sendBtn');
+
+        /**
+         * Funkcja renderująca pojedynczą wiadomość.
+         * Jeśli msgBody.fileData jest niepusty, tworzy link do pobrania PDF.
+         */
+        function renderMessage(msgBody) {
+            const div = document.createElement('div');
+            const timeStr = msgBody.sentAt
+                ? '[' + new Date(msgBody.sentAt).toLocaleTimeString() + '] '
+                : '';
+            if (msgBody.fileData) {
+                // Wiadomość z plikiem PDF
+                const blobUrl = `data:application/pdf;base64,${msgBody.fileData}`;
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = msgBody.fileName || 'file.pdf';
+                a.innerText = `(PDF: ${msgBody.fileName})`;
+                a.className = 'file-link';
+                div.innerHTML = `${timeStr}${msgBody.senderId}: ${msgBody.content} `;
+                div.appendChild(a);
+            } else {
+                // Zwykły tekst
+                div.innerText = `${timeStr}${msgBody.senderId}: ${msgBody.content}`;
+            }
+            messagesDiv.appendChild(div);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
-        fetch(`/api/chat/rooms/room/${appointmentId}`)
-            .then(resp => {
-                if (!resp.ok) throw new Error('Failed to fetch room link');
-                return resp.json();
-            })
-            .then(data => {
-                roomId = data.roomId;
-                wsUrl = data.websocketUrl;
-                document.getElementById('linkResult').innerHTML =
-                    `Room ID: <strong>${roomId}</strong><br>WebSocket URL: <strong>${wsUrl}</strong>`;
-                document.getElementById('chatSection').style.display = 'block';
-                document.getElementById('currentRoomId').innerText = roomId;
-            })
-            .catch(err => {
-                console.error(err);
-                alert('Error getting room link. Check console.');
+
+        /**
+         * Nawiązuje połączenie STOMP i subskrybuje temat /topic/chat/{roomId}.
+         * Po otrzymaniu nowych wiadomości wywołuje renderMessage.
+         */
+        function connectStomp() {
+            const socket = new SockJS(wsUrl);
+            stompClient = Stomp.over(socket);
+
+            stompClient.connect({}, function(frame) {
+                statusDiv.innerHTML = 'Status: <em>Connected</em>';
+                messageInput.disabled = false;
+                sendBtn.disabled      = false;
+
+                // Subskrybuj nowe wiadomości
+                stompClient.subscribe(`/topic/chat/${roomId}`, function(message) {
+                    renderMessage(JSON.parse(message.body));
+                });
+            }, function(error) {
+                statusDiv.innerHTML = 'Status: <em>Error connecting</em>';
+                console.error('STOMP error:', error);
             });
-    });
-
-    document.getElementById('connectChatBtn').addEventListener('click', function() {
-        if (!roomId) {
-            alert('Room ID is missing');
-            return;
-        }
-        const senderId = document.getElementById('senderIdInput').value.trim();
-        if (!senderId || isNaN(senderId)) {
-            alert('Please enter a valid numeric user ID');
-            return;
         }
 
+        /**
+         * Funkcja próbująca połączyć:
+         * 1) Pobiera historię wiadomości przez REST GET /api/chat/rooms/{roomId}/history
+         * 2) Renderuje cały zwrócony JSON jako stare wiadomości
+         * 3) Dopiero potem wywołuje connectStomp()
+         */
+        function tryConnect() {
+            const senderId = senderIdInput.value.trim();
+            if (!roomId) {
+                statusDiv.innerText = 'Status: Podaj najpierw roomId';
+                return;
+            }
+            if (!senderId || isNaN(senderId)) {
+                statusDiv.innerText = 'Status: Podaj prawidłowe numeric userId';
+                return;
+            }
+            if (stompClient) {
+                // Już połączony – nie łącz ponownie
+                return;
+            }
 
-        const socket = new SockJS(wsUrl);
+            // 1) Pobrać historię
+            fetch(`/api/v1/chat/rooms/${roomId}/history`)
+                .then(resp => {
+                    if (!resp.ok) throw new Error('Failed to fetch history');
+                    return resp.json();
+                })
+                .then(historyArray => {
+                    // 2) Render historii w kolejności rosnącej
+                    historyArray.forEach(msg => renderMessage(msg));
+                    // 3) Nawiąż STOMP
+                    connectStomp();
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Błąd pobierania historii czatu. Sprawdź konsolę.');
+                });
+        }
 
-        stompClient = Stomp.over(socket);
+        // Obsługa kliknięcia przycisku "Get Chat Room Link"
+        getRoomLinkBtn.addEventListener('click', function() {
+            const appointmentId = appointmentIdInput.value.trim();
+            if (!appointmentId) {
+                alert('Proszę wprowadzić ID wizyty.');
+                return;
+            }
 
-        stompClient.connect({}, function(frame) {
-            document.getElementById('status').innerText = 'Status: Connected';
-            document.getElementById('messageInput').disabled = false;
-            document.getElementById('sendBtn').disabled = false;
-
-            // Subskrybujmy na temat /topic/chat/{roomId}
-            stompClient.subscribe(`/topic/chat/${roomId}`, function(msg) {
-                const msgBody = JSON.parse(msg.body);
-                const div = document.createElement('div');
-                div.innerText =
-                    '[' + new Date(msgBody.sentAt).toLocaleTimeString() + '] '
-                    + msgBody.senderId + ': ' + msgBody.content;
-                document.getElementById('messages').appendChild(div);
-                document.getElementById('messages').scrollTop =
-                    document.getElementById('messages').scrollHeight;
-            });
-        }, function(err) {
-            document.getElementById('status').innerText = 'Status: Error connecting';
-            console.error('STOMP error:', err);
+            fetch(`/api/v1/chat/rooms/room/${appointmentId}`)
+                .then(resp => {
+                    if (!resp.ok) throw new Error('Failed to fetch room link');
+                    return resp.json();
+                })
+                .then(data => {
+                    roomId = data.roomId;
+                    wsUrl  = data.websocketUrl;
+                    currentRoomIdSpan.innerText = roomId;
+                    linkResult.innerHTML = `
+                    Room ID: <strong>${roomId}</strong><br>
+                    WebSocket URL: <strong>${wsUrl}</strong>
+                `;
+                    chatSection.style.display = 'block';
+                    statusDiv.innerText = 'Status: Ready to connect';
+                    // Opcjonalnie można automatycznie wywołać tryConnect po pobraniu linku, jeśli senderId już jest wpisane:
+                    // tryConnect();
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Error getting room link. Check console.');
+                });
         });
-    });
 
-    document.getElementById('sendBtn').addEventListener('click', function() {
-        const senderId = parseInt(document.getElementById('senderIdInput').value.trim());
-        const content = document.getElementById('messageInput').value.trim();
-        if (!content) return;
-        const chatMessage = {
-            room: { id: roomId },
-            senderId: senderId,
-            content: content
-        };
-        stompClient.send(`/app/chat/${roomId}`, {}, JSON.stringify(chatMessage));
-        document.getElementById('messageInput').value = '';
-    });
+        // Obsługa kliknięcia przycisku "Connect to Chat"
+        connectChatBtn.addEventListener('click', tryConnect);
+
+        // Obsługa klawisza Enter w polu wiadomości (send)
+        sendBtn.addEventListener('click', function() {
+            const senderId = parseInt(senderIdInput.value.trim());
+            const content  = messageInput.value.trim();
+            if (!content) return;
+
+            const chatMessage = {
+                room: { id: roomId },
+                senderId: senderId,
+                content: content
+            };
+            stompClient.send(`/app/chat/${roomId}`, {}, JSON.stringify(chatMessage));
+            messageInput.value = '';
+        });
+
+        // Umożliwi wysłanie wiadomości Enterem
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendBtn.click();
+            }
+        });
+    })();
 </script>
-
-
 </body>
 </html>

@@ -1,6 +1,7 @@
 package com.example.chatservice.service.impl;
 
 import com.example.chatservice.dto.AppointmentFinalizationEventDto;
+import com.example.chatservice.exception.ChatRoomNotFoundException;
 import com.example.chatservice.model.ChatRoom;
 import com.example.chatservice.repo.ChatRoomRepo;
 import com.example.chatservice.service.IChatRoomService;
@@ -32,6 +33,6 @@ public class ChatRoomServiceImpl implements IChatRoomService {
     @Override
     public ChatRoom getChatRoom(Long appointmentId) {
         return chatRoomRepo.findByAppointmentId(appointmentId)
-                .orElseThrow();
+                .orElseThrow( () -> new ChatRoomNotFoundException("Chat room not found for appointment id: " + appointmentId));
     }
 }

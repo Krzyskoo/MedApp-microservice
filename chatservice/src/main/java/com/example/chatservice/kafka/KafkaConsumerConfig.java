@@ -29,7 +29,7 @@ public class KafkaConsumerConfig {
             chatRoomService.createChatRoom(appointmentFinalizationEventDto);
 
         } catch (Exception e) {
-            // Handle the exception
+
         }
     }
 }

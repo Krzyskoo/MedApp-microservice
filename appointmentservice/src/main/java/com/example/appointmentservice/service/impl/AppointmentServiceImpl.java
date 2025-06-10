@@ -3,6 +3,9 @@ package com.example.appointmentservice.service.impl;
 import com.example.appointmentservice.config.KafkaProducer;
 import com.example.appointmentservice.constants.AppointmentStatus;
 import com.example.appointmentservice.dto.*;
+import com.example.appointmentservice.exception.AppointmentAlreadyBookedException;
+import com.example.appointmentservice.exception.AppointmentNotFoundException;
+import com.example.appointmentservice.mapper.AppointmentMapper;
 import com.example.appointmentservice.model.Appointment;
 import com.example.appointmentservice.model.AppointmentSlot;
 import com.example.appointmentservice.repo.AppointmentRepo;
@@ -10,6 +13,8 @@ import com.example.appointmentservice.service.IAppointmentService;
 import com.example.appointmentservice.service.client.PaymentFeignClient;
 import com.example.appointmentservice.service.client.UserFeignClient;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class AppointmentServiceImpl implements IAppointmentService {
@@ -39,7 +44,7 @@ public class AppointmentServiceImpl implements IAppointmentService {
         UserRequestDto userRequestDto = userFeignClient.getCurrentUserIdAndEmail();
         if(!appointmentSlotService.checkAvailability(appointmentRequestDto.getDoctorId(),
                 appointmentRequestDto.getStartAppointment())){
-            throw new RuntimeException("Appointment is not available");
+            throw new AppointmentAlreadyBookedException("Appointment already booked");
         }
 
 
@@ -68,7 +73,7 @@ public class AppointmentServiceImpl implements IAppointmentService {
     public void markPaymentAsFinalized(PaymentFinalizationEventDto paymentFinalizationEventDTO) {
         Appointment appointment = appointmentRepo.findById(paymentFinalizationEventDTO.getAppointmentId()).get();
         if (appointment==null) {
-            throw new RuntimeException("Appointment not found");
+            throw new AppointmentNotFoundException("Appointment not found");
         }
         switch (paymentFinalizationEventDTO.getPaymentStatus()) {
             case SUCCEEDED -> appointment.setStatus(AppointmentStatus.CONFIRMED);
@@ -87,6 +92,18 @@ public class AppointmentServiceImpl implements IAppointmentService {
                         appointment.getPatientId(),
                         appointment.getDoctorId()
         ));
+
+    }
+
+    @Override
+    public List<AppointmentDto> getAppointments() {
+        UserRequestDto userRequestDto = userFeignClient.getCurrentUserIdAndEmail();
+        if (userRequestDto.getUserId()!=null) {
+            List<Appointment> appointments = appointmentRepo.findAllByPatientId(userRequestDto.getUserId());
+            return appointments.stream().map(AppointmentMapper::mapToAppointmentDto).toList();
+        }else {
+            throw new RuntimeException("User is not authorized to view appointments");
+        }
 
     }
 }
